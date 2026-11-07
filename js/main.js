@@ -114,7 +114,7 @@ function paint() {
     });
     document.querySelectorAll('[data-car-eta]').forEach(el => {
       const c = d.transit.find(x => x.id === el.dataset.carEta);
-      if (c) el.textContent = cd(c.arrive - d.t);
+      if (c && c.state !== 'holding') el.textContent = cd(c.arrive - d.t);
     });
   }
   const layer = document.getElementById('axis-cars');

@@ -134,7 +134,7 @@ export function snapshot(t) {
     food: 61.2,
     transit: [
       { id: 'P-U-03', type: 'pax', dir: 'up', prog: 0.62, km: 22187, dep: t - 18 * 3600000, arrive: t + 12 * 3600000, dur: 30 * 3600000, cap: 50, load: 47, state: 'holding' },
-      { id: 'F-D-07', type: 'fr', dir: 'down', prog: 0.38, km: 25388, dep: t - 22 * 3600000, arrive: t + 38 * 3600000, dur: 60 * 3600000, cap: 20, load: 18, state: 'holding' },
+      { id: 'F-D-07', type: 'fr', dir: 'down', prog: 0.38, km: 22187, dep: t - 22 * 3600000, arrive: t + 38 * 3600000, dur: 60 * 3600000, cap: 20, load: 18, state: 'holding' },
       { id: 'P-D-02', type: 'pax', dir: 'down', prog: 0.14, km: 30776, dep: t - 4 * 3600000, arrive: t + 26 * 3600000, dur: 30 * 3600000, cap: 50, load: 39, state: 'holding' }
     ],
     nodes: s.nodes.map((n, i) => ({

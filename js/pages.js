@@ -54,7 +54,7 @@ function overview() {
   <div class="grid g4">
     ${panel(T('今日上行','Upbound today'), `<div class="kpi cy"><div class="k-label"><span>UP · TONNES</span><span>${T('上限','cap')} ${CANON.capUp}</span></div><div class="k-val">${K('upToday','t')}<small>t</small></div><div class="bar"><i data-w="upToday" data-max="${CANON.capUp}"></i></div></div>`, 'LIVE')}
     ${panel(T('今日下行','Downbound today'), `<div class="kpi am"><div class="k-label"><span>DOWN · TONNES</span><span>${T('上限','cap')} ${CANON.capDown}</span></div><div class="k-val">${K('downToday','t')}<small>t</small></div><div class="bar am"><i data-w="downToday" data-max="${CANON.capDown}"></i></div></div>`, 'LIVE')}
-    ${panel(T('在途攀爬舱','Climbers in transit'), `<div class="kpi"><div class="k-label"><span>IN TRANSIT</span><span>${T('全程','30h/60h')}</span></div><div class="k-val">${K('transit.length','int')}<small>${T('舱','pods')}</small></div><div class="k-foot"><span>${T('客运 30h','Pax 30h')}</span><span>${T('货运 60h','Freight 60h')}</span></div></div>`, '')}
+    ${panel(T('滞留攀爬舱','Held climbers'), `<div class="kpi"><div class="k-label"><span>HELD</span><span>${T('停运','HALTED')}</span></div><div class="k-val">${K('transit.length','int')}<small>${T('舱','pods')}</small></div><div class="k-foot"><span>${T('等待恢复指令','awaiting orders')}</span><span>—</span></div></div>`, '')}
     ${panel(T('系统总功耗','Total power draw'), `<div class="kpi bl"><div class="k-label"><span>POWER · MW</span><span>${T('含站体','incl. station')}</span></div><div class="k-val">${K('totalPower','0')}<small>MW</small></div><div class="bar"><i data-w="totalPower" data-max="1000"></i></div></div>`, 'GRID')}
   </div>
 
@@ -204,15 +204,16 @@ function axis() {
   </div>
 
   <div style="margin-top:14px">
-    ${panel(T('在途攀爬舱','Climbers in transit'), `
+    ${panel(T('滞留攀爬舱','Held climbers'), `
+      <p class="dim" style="margin:0 0 8px;font-size:11px">${T('世界之轴商业班次停运，三舱保持位置；应急通行须经联合指挥部批准。','Commercial service is suspended; three pods hold position. Emergency movement requires Joint Command approval.')}</p>
       <table class="tbl"><thead><tr><th>ID</th><th>${T('方向','Dir')}</th><th>${T('位置 km','Km')}</th><th>${T('进度','Progress')}</th><th>${T('载员/载重','Load')}</th><th>${T('到达','ETA')}</th><th>${T('剩余','Remaining')}</th></tr></thead><tbody>
       ${d.transit.slice(0, 10).map(c => `<tr><td class="num">${c.id}</td>
         <td>${c.dir === 'up' ? T('上行','UP') : T('下行','DOWN')}</td>
         <td class="num" data-car-km="${c.id}">${Math.round(c.km).toLocaleString()}</td>
         <td><div class="bar" style="min-width:70px"><i style="width:${(c.prog * 100).toFixed(1)}%"></i></div></td>
         <td class="num">${c.load} ${c.type === 'pax' ? T('人','pax') : 't'}</td>
-        <td class="num">${hhmm(c.arrive)}</td>
-        <td class="num" data-car-eta="${c.id}">${cd(c.arrive - APP.t)}</td></tr>`).join('')}
+        <td class="num">${c.state === 'holding' ? T('待恢复','HOLD') : hhmm(c.arrive)}</td>
+        <td class="num" data-car-eta="${c.id}">${c.state === 'holding' ? '—' : cd(c.arrive - APP.t)}</td></tr>`).join('')}
       </tbody></table>`, 'TRANSIT')}
   </div>`;
 }
@@ -317,7 +318,7 @@ function transport() {
   <div class="grid g4">
     ${panel(T('客运余量','Pax remaining'), `<div class="kpi cy"><div class="k-label"><span>PAX · TODAY</span><span>cap ${CANON.capPax}</span></div><div class="k-val">${Math.round(paxLeft)}<small>${T('人','pax')}</small></div><div class="bar"><i style="width:${pct(d.paxToday, CANON.capPax)}%"></i></div></div>`, 'PAX')}
     ${panel(T('货运余量','Freight remaining'), `<div class="kpi am"><div class="k-label"><span>UP · TONNES</span><span>cap ${CANON.capUp}</span></div><div class="k-val">${Math.round(frLeft)}<small>t</small></div><div class="bar am"><i style="width:${pct(d.upToday, CANON.capUp)}%"></i></div></div>`, 'FRT')}
-    ${panel(T('今日在途','In transit'), `<div class="kpi"><div class="k-label"><span>PODS</span><span>${T('双向','both')}</span></div><div class="k-val">${K('transit.length','int')}<small>${T('舱','pods')}</small></div><div class="k-foot"><span>${T('平均延误','avg delay')}</span><span>${K('delay','1')} min</span></div></div>`, 'TRK')}
+    ${panel(T('滞留舱','Held pods'), `<div class="kpi"><div class="k-label"><span>HELD</span><span>${T('停运','HALTED')}</span></div><div class="k-val">${K('transit.length','int')}<small>${T('舱','pods')}</small></div><div class="k-foot"><span>${T('保持位置','holding')}</span><span>—</span></div></div>`, 'TRK')}
     ${panel(T('今日班次','Departures today'), `<div class="kpi bl"><div class="k-label"><span>SLOTS</span><span>0</span></div><div class="k-val">0<small>${T('班','sched')}</small></div><div class="k-foot"><span>${T('全部取消','all cancelled')}</span><span>—</span></div></div>`, 'SCHED')}
   </div>
 
@@ -345,7 +346,8 @@ function transport() {
       </tbody></table>`, 'DAILY')}
   </div>
 
-  ${panel(T('在途明细','In-transit detail'), `
+  ${panel(T('滞留明细','Held pods'), `
+    <p class="dim" style="margin:0 0 8px;font-size:11px">${T('世界之轴商业班次停运，三舱保持位置；应急通行须经联合指挥部批准。','Commercial service is suspended; three pods hold position. Emergency movement requires Joint Command approval.')}</p>
     <div class="tbl-wrap"><table class="tbl"><thead><tr>
       <th>ID</th><th>${T('类型','Type')}</th><th>${T('方向','Dir')}</th><th>${T('位置 km','Position km')}</th>
       <th>${T('进度','Progress')}</th><th>${T('载员/载重','Load')}</th><th>${T('预计到达','ETA')}</th><th>${T('剩余','Remaining')}</th></tr></thead><tbody>
@@ -355,8 +357,8 @@ function transport() {
       <td class="num" data-car-km="${c.id}">${Math.round(c.km).toLocaleString()}</td>
       <td style="min-width:120px"><div class="bar"><i style="width:${(c.prog * 100).toFixed(1)}%"></i></div></td>
       <td class="num">${c.load} ${c.type === 'pax' ? T('人','pax') : 't'}</td>
-      <td class="num">${hhmm(c.arrive)}</td>
-      <td class="num" data-car-eta="${c.id}">${cd(c.arrive - APP.t)}</td></tr>`).join('') || `<tr><td colspan="8" class="dim">${T('当前无在途舱','No pods in transit')}</td></tr>`}
+      <td class="num">${c.state === 'holding' ? T('待恢复','HOLD') : hhmm(c.arrive)}</td>
+      <td class="num" data-car-eta="${c.id}">${c.state === 'holding' ? '—' : cd(c.arrive - APP.t)}</td></tr>`).join('') || `<tr><td colspan="8" class="dim">${T('当前无在途舱','No pods in transit')}</td></tr>`}
     </tbody></table></div>`, 'MANIFEST')}`;
 }
 
