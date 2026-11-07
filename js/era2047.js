@@ -4,8 +4,9 @@
 import { snapshot as baseSnapshot } from './sim.js';
 
 export const ERA = '2047';
-const START = Date.UTC(2047, 8, 12, 2, 47, 0); // 2047-09-12 02:47 UTC
-const WINDOW = 8 * 3600000;                     // 02:47–10:47
+const QUAKE = Date.UTC(2047, 8, 12, 2, 47, 0);   // 地震时刻
+const START = Date.UTC(2047, 8, 12, 10, 30, 0); // 视图锚点：停运确认后
+const WINDOW = 30 * 60000;                      // 10:30–11:00 震后窗口
 
 export function eraTime(now = Date.now()) { return START + (now % WINDOW); }
 
@@ -147,7 +148,7 @@ export function snapshot(t) {
       uptime: i === 5 ? 91.2 : 97.4 - i * 0.2
     })),
     events: EVENTS.map(([off, zh, en, sev], idx) => ({
-      t: START + off, zh, en, sev, id: `LOG-2047-${String(idx + 1).padStart(3, '0')}`
+      t: QUAKE + off, zh, en, sev, id: `LOG-2047-${String(idx + 1).padStart(3, '0')}`
     })).filter(e => e.t <= t + 60000).sort((a, b) => b.t - a.t),
     next: [],
     maint: { ...s.maint, suspended: true },
