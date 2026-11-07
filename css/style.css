@@ -289,3 +289,20 @@ main:focus { outline: none; }
 .panel:fullscreen .axis-car, .panel:-webkit-full-screen .axis-car { width: 14px; height: 6px; }
 .panel:fullscreen .axis-node, .panel:-webkit-full-screen .axis-node { font-size: 11px; }
 .panel:fullscreen .axis-hud, .panel:-webkit-full-screen .axis-hud { font-size: 12px; }
+
+/* ---------- 横向剖面 ---------- */
+.axis-map.h { min-height: 300px; }
+.axis-map.h .axis-line {
+  left: 18px; right: 18px; top: 50%; bottom: auto; width: auto; height: 2px;
+  background: linear-gradient(90deg, var(--cyan-d), var(--cyan), var(--amber));
+}
+.axis-map.h .axis-node {
+  top: 50%; transform: translate(-50%, -100%);
+  flex-direction: column; gap: 3px; white-space: nowrap;
+}
+.axis-map.h .axis-node.h-down { transform: translate(-50%, 0); flex-direction: column-reverse; }
+.axis-map.h .axis-car { top: calc(50% - 8px); bottom: auto; }
+.panel:fullscreen .axis-map.h, .panel:-webkit-full-screen .axis-map.h { min-height: 0; }
+.axis-map.h .axis-node.h-first { transform: translate(0, -100%); }
+.axis-map.h .axis-node.h-last { transform: translate(-100%, -100%); }
+.axis-map.h .axis-node.h-last.h-down { transform: translate(-100%, 0); }
