@@ -10,8 +10,8 @@ const WINDOW = 8 * 3600000;                     // 02:47–10:47
 export function eraTime(now = Date.now()) { return START + (now % WINDOW); }
 
 const EVENTS = [
-  [0, '安第斯地面站东南 85 km 发生 Mw7.9 地震', 'Mw7.9 earthquake 85 km SE of the Andes ground station', 'warn'],
-  [5 * 60000, '会长令第2047-09号：最高等级应急状态', 'Presidential Order 2047-09: maximum emergency', 'warn'],
+  [0, '安第斯地面站东南 85 km 发生 Mw7.9 地震', 'Mw7.9 earthquake 85 km SE of the Andes ground station', 'crit'],
+  [5 * 60000, '会长令第2047-09号：最高等级应急状态', 'Presidential Order 2047-09: maximum emergency', 'crit'],
   [13 * 60000, '中央办公厅启动全员唤醒', 'CCO activates all-staff recall', 'ok'],
   [30 * 60000, '内阁与中央六部全员抵达中央控制塔', 'Cabinet and six ministries assemble at Central Control', 'ok'],
   [83 * 60000, '紧急侦察队登舱下行', 'Recon team boards for descent', 'ok'],
@@ -19,7 +19,7 @@ const EVENTS = [
   [313 * 60000, '地面站应急修复专项启动', 'Ground station emergency repair task force launched', 'ok'],
   [373 * 60000, '中央医疗总部医疗队登舱', 'Central Medical HQ team boards', 'ok'],
   [420 * 60000, '中继塔 3–7 层结构评估：严重受损', 'Relay tower floors 3–7: severe damage', 'warn'],
-  [493 * 60000, '世界之轴确认停运，上行运力归零', 'World Axis confirmed halted; upbound capacity zero', 'warn']
+  [493 * 60000, '世界之轴确认停运，上行运力归零', 'World Axis confirmed halted; upbound capacity zero', 'crit']
 ];
 
 const ORDER_ZH = {
@@ -27,7 +27,7 @@ const ORDER_ZH = {
   meta: '会长令第 2047-09 号 · 内阁常会 / 最高军事统筹委员会联合命令',
   body: [
     '二〇四七年九月十二日二时四十七分（UTC），世界之轴地面站东南约八十五公里处发生 Mw7.9 地震，震源深度约十二公里。地面站锚定塔基座开裂，中继塔三层至七层承重结构受损，常规通信中断，世界之轴停运。',
-    '空间站已切换自载钍基熔盐堆，当前仅能维持约 32% 负载，自持能力约 72 小时。应急独立运行系统（EIOS）尚未部署。',
+    '空间站已切换自载钍基熔盐堆，当前仅能维持约 32% 负载，自持能力约 72 小时。协会尚无应急独立运行系统（EIOS）。',
     '经内阁常会与最高军事统筹委员会联合决定，自即日起进入最高等级应急状态：'
   ],
   items: [
@@ -46,7 +46,7 @@ const ORDER_EN = {
   meta: 'Presidential Order 2047-09 · Joint order of the Cabinet Standing Committee and the Supreme Military Coordination Commission',
   body: [
     'At 02:47 UTC on 12 September 2047, an Mw7.9 earthquake struck about 85 km south-east of the World Axis ground station, at a depth of roughly 12 km. The anchor tower base has cracked, relay tower floors 3–7 are structurally damaged, regular communications are down, and the Axis is halted.',
-    'The station has switched to its onboard thorium molten-salt reactors: about 32% load, roughly 72 hours of endurance. The Emergency Independent Operation System (EIOS) has not yet been deployed.',
+    'The station has switched to its onboard thorium molten-salt reactors: about 32% load, roughly 72 hours of endurance. The Association has no Emergency Independent Operation System (EIOS).',
     'The Cabinet Standing Committee and the Supreme Military Coordination Commission jointly order a maximum emergency state, effective immediately:'
   ],
   items: [
@@ -68,7 +68,7 @@ export function bannerHTML(lang = 'zh') {
   return `<div id="era-banner" class="era-banner">
     <div class="era-row">
       <span class="era-tag">${zh ? '最高等级应急' : 'MAX EMERGENCY'}</span>
-      <b>${zh ? '世界之轴地面站地震 · 世界之轴停运 · EIOS 未部署' : 'Andes earthquake · Axis halted · EIOS not deployed'}</b>
+      <b>${zh ? '世界之轴地面站地震 · 世界之轴停运 · 自持仅 72 小时' : 'Andes earthquake · Axis halted · 72 h endurance only'}</b>
       <span class="era-clock" id="era-clock">2047-09-12 02:47 UTC</span>
       <button class="era-btn" data-order>${zh ? '查看命令' : 'View order'}</button>
     </div>

@@ -5,13 +5,13 @@ import { render, fmt, cd } from './pages.js';
 
 const I18N = {
   zh: {
-    'top.link': '链路', 'top.eios': 'EIOS', 'top.mode': '模式',
+    'top.link': '链路', 'top.endurance': '自持', 'top.mode': '模式',
     'nav.overview': '总览', 'nav.axis': '世界之轴', 'nav.crown': '世界树之冠',
     'nav.transport': '运输计划', 'nav.maintenance': '维护计划', 'nav.events': '事件与告警', 'nav.about': '关于',
     'nav.unit': '工程与运维局', 'foot.fic': '本站为虚构世界观设定产物'
   },
   en: {
-    'top.link': 'LINK', 'top.eios': 'EIOS', 'top.mode': 'MODE',
+    'top.link': 'LINK', 'top.endurance': 'ENDUR', 'top.mode': 'MODE',
     'nav.overview': 'Overview', 'nav.axis': 'World Axis', 'nav.crown': 'World Tree Crown',
     'nav.transport': 'Transport', 'nav.maintenance': 'Maintenance', 'nav.events': 'Events', 'nav.about': 'About',
     'nav.unit': 'Engineering & Operations', 'foot.fic': 'Fictional-world artefact'
@@ -200,11 +200,11 @@ function mountEraUI() {
   modal?.querySelector('[data-close]')?.addEventListener('click', () => { modal.hidden = true; });
   document.querySelector('[data-order]')?.addEventListener('click', () => { modal.hidden = false; });
 
-  const eios = document.getElementById('top-eios');
+  const endur = document.getElementById('top-endurance');
   const mode = document.getElementById('top-mode');
   const link = document.getElementById('top-link');
   if (link) link.textContent = 'DEGRADED';
-  if (eios) eios.textContent = 'OFFLINE';
+  if (endur) endur.textContent = '72h';
   if (mode) mode.textContent = 'ALERT';
   document.querySelectorAll('.topstat .led').forEach(l => { l.className = 'led bad'; });
 }

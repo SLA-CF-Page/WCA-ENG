@@ -22,6 +22,8 @@ const panel = (title, body, meta = '', raw = false) =>
   `<section class="panel"><div class="panel-h"><b>${title}</b>${meta ? (raw ? meta : `<span class="tag">${meta}</span>`) : ''}</div><div class="panel-b">${body}</div></section>`;
 const kv = (label, val, cls = '') => `<div class="stat-row"><span>${label}</span><b class="${cls}">${val}</b></div>`;
 const tag = (txt, c = '') => `<span class="tag ${c}">${txt}</span>`;
+const sevCls = (s) => s === 'crit' ? 'bad' : s === 'warn' ? 'warn' : 'ok';
+const sevTxt = (s) => s === 'crit' ? T('严重', 'CRITICAL') : s === 'warn' ? T('注意', 'ADVISORY') : T('正常', 'NOMINAL');
 export const cd = (ms) => {
   const s = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
@@ -75,7 +77,7 @@ function overview() {
         ${kv(T('地面传导','Ground feed'), K('groundSupply','0') + ' MW')}
         ${kv(T('水储备','Water reserve'), K('water','int') + ' t')}
         ${kv(T('食品自给','Food self-sufficiency'), K('food','1') + ' %')}
-        ${kv(T('EIOS','EIOS'), tag('NOT INSTALLED', 'bad'))}
+        ${kv(T('应急自持','Endurance'), T('约 72 小时','~72 h'))}
       </div>`, 'CR-01')}
   </div>
 
@@ -107,8 +109,8 @@ function overview() {
     ${panel(T('实时事件','Live events'), `<div class="feed">
       ${d.events.slice(0, 7).map(e => `<div class="feed-item">
         <span class="t">${hhmm(e.t)}</span>
-        <i class="led ${e.sev === 'warn' ? 'warn' : 'ok'} dot"></i>
-        <div>${L(e.zh, e.en)}<div class="m">${e.id} · ${e.sev === 'warn' ? T('注意','ADVISORY') : T('正常','NOMINAL')}</div></div>
+        <i class="led ${sevCls(e.sev)} dot"></i>
+        <div>${L(e.zh, e.en)}<div class="m">${e.id} · ${sevTxt(e.sev)}</div></div>
       </div>`).join('')}
     </div>`, 'LOG')}
   </div>`;
@@ -229,8 +231,8 @@ function crown() {
     [T('其他','Other'), 1000, '#6f8795']
   ];
   return head('世界树之冠', 'World Tree Crown',
-    '总部空间站：五环舱段、能源与生保。EIOS 尚未部署，当前仅能维持约 32% 负载。',
-    'Headquarters station: five rings, power and life support. EIOS is not deployed; the station is running at ~32% load.') + `
+    '总部空间站：五环舱段、能源与生保。协会尚无 EIOS，当前仅能维持约 32% 负载。',
+    'Headquarters station: five rings, power and life support. The Association has no EIOS; the station is running at ~32% load.') + `
   <div class="grid g-2-1">
     ${panel(T('环段剖视','Ring section'), `<div class="ring-wrap">
       <div>${ringMap(rings)}</div>
@@ -278,15 +280,15 @@ function crown() {
         <span class="v">${n.toLocaleString()}</span></div>`).join('')}
       <div class="stat-row" style="margin-top:6px"><span>${T('设计上限','Design limit')}</span><b>60,000</b></div>
       <div class="stat-row"><span>${T('在站率','Occupancy')}</span><b class="cy">${(d.pop / 60000 * 100).toFixed(1)}%</b></div>`, 'POP')}
-    ${panel(T('应急独立运行','EIOS'), `
+    ${panel(T('应急独立运行能力','Independent operation'), `
       <div class="stat-list">
-        ${kv(T('状态','Status'), tag(T('未部署','NOT DEPLOYED'), 'bad'))}
-        ${kv(T('部署计划','Plan'), T('2048 年大修','2048 overhaul'))}
+        ${kv(T('状态','Status'), tag(T('无此系统','NONE'), 'bad'))}
         ${kv(T('当前自持','Endurance'), T('约 72 小时','~72 h'))}
         ${kv(T('可维持负载','Load'), '32%')}
         ${kv(T('自载堆','Reactors'), '3 × 80 MW · 2+1')}
         ${kv(T('地面补给','Ground feed'), T('中断','LOST'))}
-      </div>`, 'EIOS')}
+        ${kv(T('独立运行基线','Baseline'), '—')}
+      </div>`, 'N/A')}
   </div>
 
   <div class="grid g2" style="margin-top:14px">
@@ -391,34 +393,35 @@ function maintenance() {
   ${panel(T('F 级大修周期','F-class overhaul cycle'), `
     <div class="grid g4">
       ${[2018, 2023, 2028, 2033, 2038, 2043, 2048, 2053].map(y => {
-        const done = y <= 2048, next = y === 2053;
+        const done = y <= 2047, next = y === 2048;
         return `<div class="stat-row" style="border:1px solid var(--line);padding:10px 12px;border-bottom:1px solid var(--line)">
           <span>${y}</span><b class="${next ? 'am' : done ? 'cy' : ''}">${done ? T('已完成','DONE') : next ? T('计划中','NEXT') : T('计划','PLAN')}</b></div>`;
       }).join('')}
     </div>
-    <div class="stat-row" style="margin-top:12px"><span>${T('计划中','Planned')}</span><b class="am">2048 ${T('年大修','overhaul')} · EIOS · 5×120MW</b></div>`, 'CYCLE')}`;
+    <div class="stat-row" style="margin-top:12px"><span>${T('下次 F 级','Next F-class')}</span><b class="am">2048-03-01</b></div>`, 'CYCLE')}`;
 }
 
 /* ================= 事件 ================= */
 function events() {
   const d = APP.data;
   const list = d.events;
+  const crit = list.filter(e => e.sev === 'crit').length;
   const warn = list.filter(e => e.sev === 'warn').length;
   return head('事件与告警', 'Events & Alerts',
     '当值事件流：巡检、切换测试、碎片预警与异常处置记录。',
     'Duty event stream: inspections, switch tests, debris advisories and exceptions.') + `
   <div class="grid g4">
     ${panel(T('近 24 小时','Last 24 h'), `<div class="kpi"><div class="k-label"><span>LOG</span><span>24H</span></div><div class="k-val">${list.length}</div><div class="k-foot"><span>${T('全部','all')}</span><span>LOG</span></div></div>`, '')}
+    ${panel(T('严重级','Critical'), `<div class="kpi"><div class="k-label"><span>CRIT</span><span>24H</span></div><div class="k-val" style="color:var(--red)">${crit}</div><div class="k-foot"><span>${T('立即处置','immediate')}</span><span>!</span></div></div>`, '')}
     ${panel(T('注意级','Advisories'), `<div class="kpi am"><div class="k-label"><span>WARN</span><span>24H</span></div><div class="k-val">${warn}</div><div class="k-foot"><span>${T('待观察','watch')}</span><span>!</span></div></div>`, '')}
-    ${panel(T('正常级','Nominal'), `<div class="kpi cy"><div class="k-label"><span>OK</span><span>24H</span></div><div class="k-val">${list.length - warn}</div><div class="k-foot"><span>${T('已闭环','closed')}</span><span>✓</span></div></div>`, '')}
-    ${panel(T('最近事件','Latest'), `<div class="kpi bl"><div class="k-label"><span>LAST</span><span>UTC</span></div><div class="k-val">${list[0] ? hhmm(list[0].t) : '—'}</div><div class="k-foot"><span>${list[0] ? list[0].id : ''}</span><span>${list[0] ? (list[0].sev === 'warn' ? T('注意','WARN') : T('正常','OK')) : ''}</span></div></div>`, '')}
+    ${panel(T('正常级','Nominal'), `<div class="kpi cy"><div class="k-label"><span>OK</span><span>24H</span></div><div class="k-val">${list.length - crit - warn}</div><div class="k-foot"><span>${T('已闭环','closed')}</span><span>✓</span></div></div>`, '')}
   </div>
 
   ${panel(T('事件流','Event stream'), `<div class="feed" style="max-height:520px">
     ${list.map(e => `<div class="feed-item">
       <span class="t">${hhmm(e.t)}</span>
-      <i class="led ${e.sev === 'warn' ? 'warn' : 'ok'} dot"></i>
-      <div>${L(e.zh, e.en)}<div class="m">${e.id} · ${e.sev === 'warn' ? T('注意','ADVISORY') : T('正常','NOMINAL')} · ${T('已记录','logged')}</div></div>
+      <i class="led ${sevCls(e.sev)} dot"></i>
+      <div>${L(e.zh, e.en)}<div class="m">${e.id} · ${sevTxt(e.sev)} · ${T('已记录','logged')}</div></div>
     </div>`).join('')}
   </div>`, 'STREAM')}`;
 }
@@ -446,8 +449,8 @@ function about() {
         ${kv(T('客运/货运全程','Transit time'), '30 h / 60 h')}
         ${kv(T('输电/通信','Power / link'), '500 MW / 40 Tbps')}
         ${kv(T('树冠常驻','Crown residents'), '52,000')}
-        ${kv(T('树冠自载堆','Reactors'), '5 × 120 MW (4+1)')}
-        ${kv(T('EIOS','EIOS'), T('未部署（2048 计划）','Not deployed (2048 plan)'))}
+        ${kv(T('树冠自载堆','Reactors'), '3 × 80 MW (2+1)')}
+        ${kv(T('应急独立运行','Indep. operation'), T('无此系统','None'))}
       </div>`, 'CANON')}
   </div>
 
