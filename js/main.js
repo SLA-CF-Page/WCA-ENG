@@ -77,6 +77,21 @@ function paint() {
     const max = Number(el.dataset.max) || 100;
     if (v != null) el.style.width = Math.max(0, Math.min(100, v / max * 100)) + '%';
   });
+  document.querySelectorAll('[data-tag]').forEach(el => {
+    const st = get(d, el.dataset.tag);
+    if (st == null) return;
+    const warn = st === 'warn';
+    el.className = 'tag ' + (warn ? 'warn' : 'ok');
+    el.textContent = warn ? app.L('注意', 'ADVISORY') : app.L('正常', 'NOMINAL');
+  });
+  const layer = document.getElementById('axis-cars');
+  if (layer && Array.isArray(d.transit)) {
+    layer.innerHTML = d.transit.map(c => {
+      const p = Math.max(0, Math.min(100, c.km / 39986 * 100));
+      const up = c.dir === 'up';
+      return `<div class="axis-car" style="bottom:${p}%;background:${up ? 'var(--cyan)' : 'var(--amber)'};box-shadow:0 0 8px ${up ? 'rgba(53,224,208,.8)' : 'rgba(255,180,84,.8)'}"></div>`;
+    }).join('');
+  }
 }
 
 function renderRoute(keepScroll) {

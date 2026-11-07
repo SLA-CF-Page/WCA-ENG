@@ -55,9 +55,9 @@ const dayStart = (t) => Math.floor(t / DAY) * DAY;
 /* ---------- 连续遥测 ---------- */
 function rates(t) {
   return {
-    up: clamp(mix(t, 33.3, 6.4, 7.3, 2.1, 0.12, 0.61), 18, 44),
-    down: clamp(mix(t, 25.0, 6.0, 8.7, 2.7, 0.47, 0.19), 12, 36),
-    pax: clamp(mix(t, 16.5, 5.2, 6.1, 1.7, 0.33, 0.72), 6, 28)
+    up: clamp(mix(t, 33.3, 6.4, 7.3, 2.1, 0.12, 0.61) + 0.9 * w(t, 0.04, 0.3), 18, 44),
+    down: clamp(mix(t, 25.0, 6.0, 8.7, 2.7, 0.47, 0.19) + 0.7 * w(t, 0.05, 0.8), 12, 36),
+    pax: clamp(mix(t, 16.5, 5.2, 6.1, 1.7, 0.33, 0.72) + 0.5 * w(t, 0.06, 0.5), 6, 28)
   };
 }
 
@@ -75,8 +75,8 @@ export function todayTotals(t) {
 
 export function telemetry(t) {
   const r = rates(t);
-  const axisPower = mix(t, 438, 46, 5.7, 1.3, 0.21, 0.84);
-  const crownPower = mix(t, 436, 34, 9.1, 2.3, 0.66, 0.27);
+  const axisPower = mix(t, 438, 46, 5.7, 1.3, 0.21, 0.84) + 3.5 * w(t, 0.07, 0.4);
+  const crownPower = mix(t, 436, 34, 9.1, 2.3, 0.66, 0.27) + 2.5 * w(t, 0.09, 0.9);
   const reactorOn = 4;
   const reactorMW = reactorOn * CANON.reactorMW * mix(t, 0.965, 0.025, 3.3, 1.1, 0.4, 0.9);
   const waterCycle = ((t % (7 * DAY)) / (7 * DAY));
@@ -264,6 +264,28 @@ export function rings(t) {
   }));
 }
 
+export function nodes(t) {
+  const cars = transit(t);
+  const out = [];
+  for (let i = 0; i < 8; i++) {
+    const km = (i + 1) * 5000;
+    const ph = i * 0.37;
+    const load = clamp(mix(t, 64, 21, 1.7 + i * 0.13, 0.55, ph, ph + 0.5) + 6 * hash(i * 11 + 3) - 3
+      + 3.4 * w(t, 0.08, ph * 1.7) + 1.5 * w(t, 0.033, ph * 2.3), 26, 97);
+    const lat = clamp(1.1 + load * 0.072 + 0.55 * w(t, 0.85, ph + 0.2) + 0.45 * w(t, 0.06, ph * 2.1), 0.9, 9.6);
+    const temp = 31 - i * 12.5 + 3.2 * w(t, 2.3, ph) + 0.55 * w(t, 0.09, ph * 1.3) - (i > 5 ? 5 : 0);
+    const power = clamp(mix(t, 44, 11, 2.1, 0.75, ph, ph + 0.3), 18, 70);
+    const seg = cars.filter(c => c.km >= km - 2500 && c.km < km + 2500).length;
+    const warn = load > 88 || lat > 8.2;
+    out.push({
+      id: `N${String(i + 1).padStart(2, '0')}`, km, load, lat, temp, power, cars: seg,
+      state: warn ? 'warn' : 'ok',
+      uptime: 99.2 + hash(i * 7 + 1) * 0.79
+    });
+  }
+  return out;
+}
+
 export function snapshot(t) {
-  return { ...telemetry(t), transit: transit(t), next: nextDepartures(t), events: events(t), maint: maintenance(t), rings: rings(t) };
+  return { ...telemetry(t), transit: transit(t), nodes: nodes(t), next: nextDepartures(t), events: events(t), maint: maintenance(t), rings: rings(t) };
 }

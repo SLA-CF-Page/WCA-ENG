@@ -34,7 +34,7 @@ const head = (titleZh, titleEn, subZh, subEn) => `
   <div class="stamp">NODE <b>EOB-01</b> · ${dateStr(APP.t)}<br>${hhmm(APP.t)} UTC · WCA-ENG-2051</div>
 </div>`;
 
-const hist = (fn, mins = 60, step = 2) => {
+const hist = (fn, mins = 60, step = 1) => {
   const a = [];
   for (let i = mins; i >= 0; i -= step) a.push(fn(APP.at(APP.t - i * 60000)));
   return a;
@@ -114,6 +114,7 @@ function axis() {
   const d = APP.data;
   const pos = km => Math.max(0, Math.min(100, km / CANON.totalKm * 100));
   const nodes = Array.from({ length: 8 }, (_, i) => (i + 1) * 5000);
+  const carLayer = d.transit.map(c => `<div class="axis-car" style="bottom:${pos(c.km)}%;background:${c.dir === 'up' ? 'var(--cyan)' : 'var(--amber)'};box-shadow:0 0 8px ${c.dir === 'up' ? 'rgba(53,224,208,.8)' : 'rgba(255,180,84,.8)'}"></div>`).join('');
   return head('世界之轴', 'World Axis',
     '轨道电梯全段运行监控：索系、节点、攀爬舱与能源链路。总长约 40,000 km。',
     'Full-segment monitoring: tether, relay nodes, climbers and power chain. ~40,000 km overall.') + `
@@ -123,10 +124,10 @@ function axis() {
         <div class="axis-line"></div>
         <div class="axis-node" style="bottom:0"><span class="mk"></span>${T('地面站 · 安第斯','Ground · Andes')} 0 km</div>
         ${nodes.map((km, i) => `<div class="axis-node ${i % 2 ? 'left' : ''}" style="bottom:${pos(km)}%">
-          <span class="mk"></span>N${String(i + 1).padStart(2, '0')} · ${km.toLocaleString()} km</div>`).join('')}
+          <span class="mk"></span>N0${i + 1} · ${km.toLocaleString()} km</div>`).join('')}
         <div class="axis-node" style="bottom:${pos(CANON.axisKm)}%"><span class="mk"></span>${T('世界树之冠','Crown')} 35,786 km</div>
         <div class="axis-node" style="bottom:${pos(CANON.totalKm)}%"><span class="mk"></span>${T('配重段','Counterweight')} 39,986 km</div>
-        ${d.transit.map(c => `<div class="axis-car" style="bottom:${pos(c.km)}%;background:${c.dir === 'up' ? 'var(--cyan)' : 'var(--amber)'};box-shadow:0 0 8px ${c.dir === 'up' ? 'rgba(53,224,208,.8)' : 'rgba(255,180,84,.8)'}"></div>`).join('')}
+        <div id="axis-cars">${carLayer}</div>
       </div>`, 'PROFILE')}
     ${panel(T('实时参数','Live parameters'), `
       <div class="stat-list">
@@ -146,28 +147,47 @@ function axis() {
       { values: hist(x => x.upRate), color: '#35e0d0', fill: true },
       { values: hist(x => x.downRate), color: '#ffb454' }
     ], { h: 140 }) + legend([{ label: T('上行','Up'), color: '#35e0d0' }, { label: T('下行','Down'), color: '#ffb454' }]), 't/h')}
-    ${panel(T('索系张力与温度','Tension & temperature'), chart([
-      { values: hist(x => x.tension), color: '#5aa9ff' },
-      { values: hist(x => x.tempGround), color: '#ffb454' }
-    ], { h: 140 }) + legend([{ label: T('张力 %','Tension %'), color: '#5aa9ff' }, { label: T('地面端 °C','Ground °C'), color: '#ffb454' }]), 'SENSOR')}
+    ${panel(T('索系张力','Tether tension'), chart([
+      { values: hist(x => x.tension), color: '#5aa9ff', fill: true }
+    ], { h: 140 }), '%')}
   </div>
 
-  <div class="grid g2" style="margin-top:14px">
+  ${panel(T('索系温度 · 三测点','Tether temperature · 3 probes'), chart([
+    { values: hist(x => x.tempGround), color: '#ffb454' },
+    { values: hist(x => x.tempMid), color: '#35e0d0' },
+    { values: hist(x => x.tempHigh), color: '#5aa9ff' }
+  ], { h: 150 }) + legend([
+    { label: T('地面端','Ground'), color: '#ffb454' },
+    { label: T('中段','Mid'), color: '#35e0d0' },
+    { label: T('高段','High'), color: '#5aa9ff' }
+  ]), '°C')}` + `
+  <div style="margin-top:14px">
     ${panel(T('中继节点','Relay nodes'), `
-      <table class="tbl"><thead><tr><th>${T('节点','Node')}</th><th>${T('里程','Km')}</th><th>${T('状态','Status')}</th><th>${T('负载','Load')}</th><th>${T('时延','Latency')}</th></tr></thead><tbody>
-      ${nodes.map((km, i) => {
-        const warn = i === 5;
-        return `<tr><td class="num">N${String(i + 1).padStart(2, '0')}</td><td class="num">${km.toLocaleString()}</td>
-          <td>${tag(warn ? T('注意','ADVISORY') : T('正常','NOMINAL'), warn ? 'warn' : 'ok')}</td>
-          <td class="num">${(58 + (i * 7) % 30)}%</td><td class="num">${(2 + i * 0.7).toFixed(1)} ms</td></tr>`;
-      }).join('')}
+      <table class="tbl"><thead><tr>
+        <th>${T('节点','Node')}</th><th>${T('里程 km','Km')}</th><th>${T('状态','Status')}</th>
+        <th>${T('负载','Load')}</th><th>${T('时延 ms','Latency')}</th><th>${T('温度 °C','Temp')}</th>
+        <th>${T('在段舱','Pods')}</th><th>${T('可用率','Uptime')}</th></tr></thead><tbody>
+      ${d.nodes.map((n, i) => `<tr>
+        <td class="num">${n.id}</td><td class="num">${n.km.toLocaleString()}</td>
+        <td><span class="tag ${n.state === 'warn' ? 'warn' : 'ok'}" data-tag="nodes.${i}.state">${n.state === 'warn' ? T('注意','ADVISORY') : T('正常','NOMINAL')}</span></td>
+        <td style="min-width:110px"><div class="bar-row"><div class="bar"><i data-w="nodes.${i}.load" data-max="100" style="width:${n.load.toFixed(1)}%"></i></div>
+          <span class="v" data-k="nodes.${i}.load" data-f="1">${fmt(n.load, '1')}</span></div></td>
+        <td class="num" data-k="nodes.${i}.lat" data-f="1">${fmt(n.lat, '1')}</td>
+        <td class="num" data-k="nodes.${i}.temp" data-f="1">${fmt(n.temp, '1')}</td>
+        <td class="num" data-k="nodes.${i}.cars" data-f="int">${n.cars}</td>
+        <td class="num"><span data-k="nodes.${i}.uptime" data-f="2">${fmt(n.uptime, '2')}</span>%</td>
+      </tr>`).join('')}
       </tbody></table>`, '8 NODES')}
+  </div>
+
+  <div style="margin-top:14px">
     ${panel(T('在途攀爬舱','Climbers in transit'), `
-      <table class="tbl"><thead><tr><th>ID</th><th>${T('方向','Dir')}</th><th>${T('位置','Km')}</th><th>${T('进度','Progress')}</th><th>${T('到达','ETA')}</th></tr></thead><tbody>
-      ${d.transit.slice(0, 7).map(c => `<tr><td class="num">${c.id}</td>
+      <table class="tbl"><thead><tr><th>ID</th><th>${T('方向','Dir')}</th><th>${T('位置 km','Km')}</th><th>${T('进度','Progress')}</th><th>${T('载员/载重','Load')}</th><th>${T('到达','ETA')}</th></tr></thead><tbody>
+      ${d.transit.slice(0, 10).map(c => `<tr><td class="num">${c.id}</td>
         <td>${c.dir === 'up' ? T('上行','UP') : T('下行','DOWN')}</td>
         <td class="num">${Math.round(c.km).toLocaleString()}</td>
         <td><div class="bar" style="min-width:70px"><i style="width:${(c.prog * 100).toFixed(1)}%"></i></div></td>
+        <td class="num">${c.load} ${c.type === 'pax' ? T('人','pax') : 't'}</td>
         <td class="num">${hhmm(c.arrive)}</td></tr>`).join('')}
       </tbody></table>`, 'TRANSIT')}
   </div>`;

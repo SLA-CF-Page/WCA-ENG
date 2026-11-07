@@ -44,8 +44,9 @@ export function chart(series, opt = {}) {
 function fmtAxis(v) {
   const a = Math.abs(v);
   if (a >= 1000) return (v / 1000).toFixed(1) + 'k';
-  if (a >= 10) return v.toFixed(0);
-  return v.toFixed(1);
+  if (a >= 100) return v.toFixed(0);
+  if (a >= 10) return v.toFixed(1);
+  return v.toFixed(2);
 }
 
 export function legend(items) {
