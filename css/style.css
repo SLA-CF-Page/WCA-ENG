@@ -206,7 +206,7 @@ main:focus { outline: none; }
 .axis-node .mk { width: 7px; height: 7px; border: 1px solid var(--cyan); transform: rotate(45deg); background: var(--bg); }
 .axis-node.left { flex-direction: row-reverse; transform: translate(-100%, -50%); }
 .axis-node.left .mk { margin-left: 8px; }
-.axis-car { position: absolute; left: 50%; width: 10px; height: 4px; background: var(--amber); box-shadow: 0 0 8px rgba(255,180,84,.8); transform: translate(-50%, -50%); }
+.axis-car { position: absolute; left: 50%; width: 12px; height: 5px; background: var(--amber); box-shadow: 0 0 8px rgba(255,180,84,.8); transform: translate(-50%, -50%); }
 .axis-cap { position: absolute; left: 50%; transform: translate(-50%, -50%); font-family: var(--mono); font-size: 9px; color: var(--dim2); }
 
 /* ---------- 环段 ---------- */
@@ -256,3 +256,36 @@ main:focus { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---------- 剖面控制 / 全屏 ---------- */
+.map-ctl { display: flex; gap: 6px; align-items: center; }
+.seg { display: flex; border: 1px solid var(--line2); }
+.seg button {
+  background: transparent; border: 0; border-right: 1px solid var(--line2);
+  color: var(--dim); font: 10px var(--mono); padding: 3px 7px; cursor: pointer;
+}
+.seg button:last-child { border-right: 0; }
+.seg button:hover { color: var(--cyan); }
+.seg button.on { background: var(--cyan); color: #04121a; }
+.icon {
+  background: transparent; border: 1px solid var(--line2); color: var(--dim);
+  width: 26px; height: 22px; cursor: pointer; font-size: 12px; line-height: 1;
+}
+.icon:hover { color: var(--cyan); border-color: var(--cyan-d); }
+.axis-hud {
+  position: absolute; right: 10px; bottom: 8px; z-index: 3;
+  display: flex; gap: 10px; font-family: var(--mono); font-size: 10px; color: var(--dim2);
+}
+.axis-hud #map-speed { color: var(--amber); }
+.axis-hud #map-clock { color: var(--cyan); }
+.hud-note { opacity: .7; }
+.panel:fullscreen, .panel:-webkit-full-screen {
+  background: var(--bg); display: flex; flex-direction: column; padding: 0;
+}
+.panel:fullscreen .panel-b, .panel:-webkit-full-screen .panel-b {
+  flex: 1; height: auto; padding: 8px;
+}
+.panel:fullscreen .axis-map, .panel:-webkit-full-screen .axis-map { height: 100%; min-height: 0; }
+.panel:fullscreen .axis-car, .panel:-webkit-full-screen .axis-car { width: 14px; height: 6px; }
+.panel:fullscreen .axis-node, .panel:-webkit-full-screen .axis-node { font-size: 11px; }
+.panel:fullscreen .axis-hud, .panel:-webkit-full-screen .axis-hud { font-size: 12px; }

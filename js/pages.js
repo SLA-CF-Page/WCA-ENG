@@ -18,8 +18,8 @@ export function fmt(v, f) {
 }
 const K = (k, f = '') => `<b data-k="${k}"${f ? ` data-f="${f}"` : ''}>—</b>`;
 const pct = (v, max) => Math.max(0, Math.min(100, v / max * 100));
-const panel = (title, body, meta = '') =>
-  `<section class="panel"><div class="panel-h"><b>${title}</b>${meta ? `<span class="tag">${meta}</span>` : ''}</div><div class="panel-b">${body}</div></section>`;
+const panel = (title, body, meta = '', raw = false) =>
+  `<section class="panel"><div class="panel-h"><b>${title}</b>${meta ? (raw ? meta : `<span class="tag">${meta}</span>`) : ''}</div><div class="panel-b">${body}</div></section>`;
 const kv = (label, val, cls = '') => `<div class="stat-row"><span>${label}</span><b class="${cls}">${val}</b></div>`;
 const tag = (txt, c = '') => `<span class="tag ${c}">${txt}</span>`;
 export const cd = (ms) => {
@@ -119,13 +119,17 @@ function axis() {
   const d = APP.data;
   const pos = km => Math.max(0, Math.min(100, km / CANON.totalKm * 100));
   const nodes = Array.from({ length: 8 }, (_, i) => (i + 1) * 5000);
-  const carLayer = d.transit.map(c => `<div class="axis-car" style="bottom:${pos(c.km)}%;background:${c.dir === 'up' ? 'var(--cyan)' : 'var(--amber)'};box-shadow:0 0 8px ${c.dir === 'up' ? 'rgba(53,224,208,.8)' : 'rgba(255,180,84,.8)'}"></div>`).join('');
+  const carLayer = d.transit.map(c => {
+    const up = c.dir === 'up';
+    return `<div class="axis-car" style="bottom:${pos(c.km)}%;left:calc(50% ${up ? '-' : '+'} 7px);background:${up ? 'var(--cyan)' : 'var(--amber)'};box-shadow:0 0 8px ${up ? 'rgba(53,224,208,.8)' : 'rgba(255,180,84,.8)'}"></div>`;
+  }).join('');
   return head('世界之轴', 'World Axis',
     '轨道电梯全段运行监控：索系、节点、攀爬舱与能源链路。总长约 40,000 km。',
     'Full-segment monitoring: tether, relay nodes, climbers and power chain. ~40,000 km overall.') + `
   <div class="grid g-2-1">
     ${panel(T('全段剖面','Segment profile'), `
       <div class="axis-map">
+        <div class="axis-hud"><span id="map-speed">×${APP.mapSpeed}</span><span id="map-clock">--:--:--</span><span class="hud-note">${T('仿真时间轴','SIM TIME')}</span></div>
         <div class="axis-line"></div>
         <div class="axis-node" style="bottom:0"><span class="mk"></span>${T('地面站 · 安第斯','Ground · Andes')} 0 km</div>
         ${nodes.map((km, i) => `<div class="axis-node ${i % 2 ? 'left' : ''}" style="bottom:${pos(km)}%">
@@ -133,7 +137,11 @@ function axis() {
         <div class="axis-node" style="bottom:${pos(CANON.axisKm)}%"><span class="mk"></span>${T('世界树之冠','Crown')} 35,786 km</div>
         <div class="axis-node" style="bottom:${pos(CANON.totalKm)}%"><span class="mk"></span>${T('配重段','Counterweight')} 39,986 km</div>
         <div id="axis-cars">${carLayer}</div>
-      </div>`, 'PROFILE')}
+      </div>`,
+      `<div class="map-ctl">
+        <div class="seg">${[1, 60, 600, 3600].map(v => `<button data-speed="${v}" class="${APP.mapSpeed === v ? 'on' : ''}">${v}×</button>`).join('')}</div>
+        <button class="icon" data-fs title="${T('全屏','Fullscreen')}" aria-label="fullscreen">⛶</button>
+      </div>`, true)}
     ${panel(T('实时参数','Live parameters'), `
       <div class="stat-list">
         ${kv(T('上行速率','Upbound'), K('upRate','1') + ' t/h')}

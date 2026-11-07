@@ -1,5 +1,5 @@
 /* main.js — 路由 / 多语言 / 实时刷新 */
-import { snapshot, telemetry, fictionDelta, dateStr } from './sim.js';
+import { snapshot, telemetry, transit, fictionDelta, dateStr } from './sim.js';
 import { render, fmt, cd } from './pages.js';
 
 const I18N = {
@@ -22,7 +22,25 @@ const state = {
   t: Date.now() + fictionDelta(),
   delta: fictionDelta(),
   data: null,
-  path: '/'
+  path: '/',
+  mapSpeed: 600,
+  mapSim: Date.now() + fictionDelta(),
+  mapReal: Date.now()
+};
+
+const mapTime = () => state.mapSim + (Date.now() - state.mapReal) * state.mapSpeed;
+function setSpeed(v) {
+  if (v === state.mapSpeed) return;
+  state.mapSim = mapTime();
+  state.mapReal = Date.now();
+  state.mapSpeed = v;
+  document.querySelectorAll('[data-speed]').forEach(b => b.classList.toggle('on', Number(b.dataset.speed) === v));
+  const el = document.getElementById('map-speed');
+  if (el) el.textContent = '×' + v;
+}
+const hms = (ms) => {
+  const d = new Date(ms), p = n => String(n).padStart(2, '0');
+  return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
 };
 
 const app = {
@@ -32,7 +50,8 @@ const app = {
   get t() { return state.t; },
   get data() { return state.data; },
   at(ms) { return telemetry(ms); },
-  go(href) { location.hash = href; }
+  go(href) { location.hash = href; },
+  get mapSpeed() { return state.mapSpeed; }
 };
 
 const main = document.getElementById('main');
@@ -95,14 +114,30 @@ function paint() {
     });
   }
   const layer = document.getElementById('axis-cars');
-  if (layer && Array.isArray(d.transit)) {
-    layer.innerHTML = d.transit.map(c => {
+  if (layer) {
+    const mt = mapTime();
+    const cars = transit(mt);
+    layer.innerHTML = cars.map(c => {
       const p = Math.max(0, Math.min(100, c.km / 39986 * 100));
       const up = c.dir === 'up';
-      return `<div class="axis-car" style="bottom:${p}%;background:${up ? 'var(--cyan)' : 'var(--amber)'};box-shadow:0 0 8px ${up ? 'rgba(53,224,208,.8)' : 'rgba(255,180,84,.8)'}"></div>`;
+      return `<div class="axis-car" style="bottom:${p}%;left:calc(50% ${up ? '-' : '+'} 7px);background:${up ? 'var(--cyan)' : 'var(--amber)'};box-shadow:0 0 8px ${up ? 'rgba(53,224,208,.8)' : 'rgba(255,180,84,.8)'}"></div>`;
     }).join('');
+    const mc = document.getElementById('map-clock');
+    if (mc) mc.textContent = hms(mt);
   }
 }
+
+document.addEventListener('click', (e) => {
+  const sp = e.target.closest('[data-speed]');
+  if (sp) { setSpeed(Number(sp.dataset.speed)); return; }
+  const fs = e.target.closest('[data-fs]');
+  if (fs) {
+    const p = fs.closest('.panel');
+    const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+    if (isFull) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+    else (p?.requestFullscreen || p?.webkitRequestFullscreen)?.call(p);
+  }
+});
 
 function renderRoute(keepScroll) {
   const y = keepScroll ? main.scrollTop : 0;
@@ -156,6 +191,12 @@ document.getElementById('lang-btn')?.addEventListener('click', () => {
 window.addEventListener('hashchange', () => renderRoute(false));
 
 function boot() {
+  const q = Number(new URLSearchParams(location.search).get('spd'));
+  if ([1, 60, 600, 3600].includes(q)) {
+    state.mapSpeed = q;
+    state.mapSim = Date.now() + state.delta;
+    state.mapReal = Date.now();
+  }
   renderRoute(false);
   updateClock();
   setInterval(() => {
