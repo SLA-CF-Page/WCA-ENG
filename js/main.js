@@ -1,6 +1,6 @@
 /* main.js — 路由 / 多语言 / 实时刷新 */
 import { snapshot, telemetry, fictionDelta, dateStr } from './sim.js';
-import { render, fmt } from './pages.js';
+import { render, fmt, cd } from './pages.js';
 
 const I18N = {
   zh: {
@@ -80,10 +80,20 @@ function paint() {
   document.querySelectorAll('[data-tag]').forEach(el => {
     const st = get(d, el.dataset.tag);
     if (st == null) return;
-    const warn = st === 'warn';
-    el.className = 'tag ' + (warn ? 'warn' : 'ok');
-    el.textContent = warn ? app.L('注意', 'ADVISORY') : app.L('正常', 'NOMINAL');
+    const kind = st === 'warn' ? 'warn' : st === 'maint' ? 'cy' : 'ok';
+    el.className = 'tag ' + kind;
+    el.textContent = st === 'warn' ? app.L('注意', 'ADVISORY') : st === 'maint' ? app.L('维护', 'MAINT') : app.L('正常', 'NOMINAL');
   });
+  if (Array.isArray(d.transit)) {
+    document.querySelectorAll('[data-car-km]').forEach(el => {
+      const c = d.transit.find(x => x.id === el.dataset.carKm);
+      if (c) el.textContent = Math.round(c.km).toLocaleString('en-US');
+    });
+    document.querySelectorAll('[data-car-eta]').forEach(el => {
+      const c = d.transit.find(x => x.id === el.dataset.carEta);
+      if (c) el.textContent = cd(c.arrive - d.t);
+    });
+  }
   const layer = document.getElementById('axis-cars');
   if (layer && Array.isArray(d.transit)) {
     layer.innerHTML = d.transit.map(c => {

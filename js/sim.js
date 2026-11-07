@@ -55,9 +55,9 @@ const dayStart = (t) => Math.floor(t / DAY) * DAY;
 /* ---------- 连续遥测 ---------- */
 function rates(t) {
   return {
-    up: clamp(mix(t, 33.3, 6.4, 7.3, 2.1, 0.12, 0.61) + 0.9 * w(t, 0.04, 0.3), 18, 44),
-    down: clamp(mix(t, 25.0, 6.0, 8.7, 2.7, 0.47, 0.19) + 0.7 * w(t, 0.05, 0.8), 12, 36),
-    pax: clamp(mix(t, 16.5, 5.2, 6.1, 1.7, 0.33, 0.72) + 0.5 * w(t, 0.06, 0.5), 6, 28)
+    up: 33.3 * (1 + 0.012 * w(t, 6.5, 0.12) + 0.003 * w(t, 0.9, 0.45)),
+    down: 25.0 * (1 + 0.011 * w(t, 8.7, 0.47) + 0.003 * w(t, 1.3, 0.2)),
+    pax: 16.5 * (1 + 0.010 * w(t, 6.1, 0.33))
   };
 }
 
@@ -75,10 +75,10 @@ export function todayTotals(t) {
 
 export function telemetry(t) {
   const r = rates(t);
-  const axisPower = mix(t, 438, 46, 5.7, 1.3, 0.21, 0.84) + 3.5 * w(t, 0.07, 0.4);
-  const crownPower = mix(t, 436, 34, 9.1, 2.3, 0.66, 0.27) + 2.5 * w(t, 0.09, 0.9);
+  const axisPower = 438 * (1 + 0.007 * w(t, 5.7, 0.21));
+  const crownPower = 436 * (1 + 0.006 * w(t, 9.1, 0.66));
   const reactorOn = 4;
-  const reactorMW = reactorOn * CANON.reactorMW * mix(t, 0.965, 0.025, 3.3, 1.1, 0.4, 0.9);
+  const reactorMW = reactorOn * CANON.reactorMW * (0.972 + 0.005 * w(t, 3.3, 0.4));
   const waterCycle = ((t % (7 * DAY)) / (7 * DAY));
   const water = 19960 - waterCycle * 640;
   const pop = Math.round(mix(t, 51980, 95, 11, 3.7, 0.5, 0.2));
@@ -91,19 +91,19 @@ export function telemetry(t) {
     groundSupply: Math.max(0, axisPower + crownPower - reactorMW),
     upRate: r.up, downRate: r.down,
     upToday: tt.up, downToday: tt.down, paxToday: tt.pax,
-    tension: mix(t, 99.05, 0.55, 13, 4.1, 0.35, 0.77),
-    availability: clamp(mix(t, 99.55, 0.35, 17, 5.3, 0.2, 0.6), 98.9, 99.99),
-    tempGround: mix(t, 30, 4, 6, 2, 0.1, 0.5),
-    tempMid: mix(t, -12, 6, 8, 2.5, 0.3, 0.7),
-    tempHigh: mix(t, -52, 7, 10, 3, 0.6, 0.4),
+    tension: 99.86 + 0.04 * w(t, 13, 0.35) + 0.008 * w(t, 2.1, 0.77),
+    availability: 99.95 + 0.03 * w(t, 17, 0.2),
+    tempGround: 30 + 1.2 * w(t, 9, 0.1),
+    tempMid: -12 + 1.5 * w(t, 8, 0.3),
+    tempHigh: -52 + 2.0 * w(t, 10, 0.6),
     water, waterPct: water / CANON.waterReserve * 100,
-    food: clamp(mix(t, 65.4, 2.1, 19, 6.2, 0.44, 0.13), 60, 70),
-    pop,
-    o2: mix(t, 20.9, 0.12, 5, 1.6, 0.2, 0.8),
-    cabinTemp: mix(t, 22, 0.9, 4, 1.2, 0.7, 0.3),
-    humidity: mix(t, 45, 4, 7, 2.2, 0.9, 0.5),
-    delay: clamp(mix(t, 0.8, 1.2, 5.5, 1.9, 0.2, 0.6), 0, 4.5),
-    queue: Math.max(0, Math.round(mix(t, 3, 4, 4.4, 1.4, 0.1, 0.8)))
+    food: 65.2 + 0.4 * w(t, 19, 0.44),
+    pop: Math.round(51980 + 25 * w(t, 11, 0.5)),
+    o2: 20.9 + 0.03 * w(t, 5, 0.2),
+    cabinTemp: 22 + 0.15 * w(t, 4, 0.7),
+    humidity: 45 + 0.8 * w(t, 7, 0.9),
+    delay: Math.max(0, 0.4 + 0.35 * w(t, 5.5, 0.2)),
+    queue: 2 + Math.round(1.5 + 1.5 * w(t, 4.4, 0.1))
   };
 }
 
@@ -270,17 +270,20 @@ export function nodes(t) {
   for (let i = 0; i < 8; i++) {
     const km = (i + 1) * 5000;
     const ph = i * 0.37;
-    const load = clamp(mix(t, 64, 21, 1.7 + i * 0.13, 0.55, ph, ph + 0.5) + 6 * hash(i * 11 + 3) - 3
-      + 3.4 * w(t, 0.08, ph * 1.7) + 1.5 * w(t, 0.033, ph * 2.3), 26, 97);
-    const lat = clamp(1.1 + load * 0.072 + 0.55 * w(t, 0.85, ph + 0.2) + 0.45 * w(t, 0.06, ph * 2.1), 0.9, 9.6);
-    const temp = 31 - i * 12.5 + 3.2 * w(t, 2.3, ph) + 0.55 * w(t, 0.09, ph * 1.3) - (i > 5 ? 5 : 0);
-    const power = clamp(mix(t, 44, 11, 2.1, 0.75, ph, ph + 0.3), 18, 70);
+    const baseLoad = [54, 59, 63, 67, 70, 66, 61, 56][i];
+    const load = baseLoad + 0.9 * w(t, 5.2 + i * 0.3, ph);
+    const lat = [2.1, 2.7, 3.3, 3.9, 4.6, 5.2, 5.9, 6.6][i] + 0.12 * w(t, 3.4 + i * 0.2, ph);
+    const temp = 31 - i * 12.5 + 0.8 * w(t, 7 + i * 0.4, ph) - (i > 5 ? 5 : 0);
+    const power = 48 - i * 2 + 1.2 * w(t, 6.1 + i * 0.3, ph);
     const seg = cars.filter(c => c.km >= km - 2500 && c.km < km + 2500).length;
-    const warn = load > 88 || lat > 8.2;
+    const d = new Date(t);
+    const hour = d.getUTCHours(), min = d.getUTCMinutes();
+    const maint = hour === 9 + i && min < 20;
+    const advisory = i === 5 && hour === 15 && min < 10;
     out.push({
       id: `N${String(i + 1).padStart(2, '0')}`, km, load, lat, temp, power, cars: seg,
-      state: warn ? 'warn' : 'ok',
-      uptime: 99.2 + hash(i * 7 + 1) * 0.79
+      state: advisory ? 'warn' : maint ? 'maint' : 'ok',
+      uptime: 99.9 - hash(i * 7 + 1) * 0.12
     });
   }
   return out;

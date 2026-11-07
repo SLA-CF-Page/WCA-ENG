@@ -22,6 +22,11 @@ const panel = (title, body, meta = '') =>
   `<section class="panel"><div class="panel-h"><b>${title}</b>${meta ? `<span class="tag">${meta}</span>` : ''}</div><div class="panel-b">${body}</div></section>`;
 const kv = (label, val, cls = '') => `<div class="stat-row"><span>${label}</span><b class="${cls}">${val}</b></div>`;
 const tag = (txt, c = '') => `<span class="tag ${c}">${txt}</span>`;
+export const cd = (ms) => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+};
 const arr = (dep, hours) => {
   const t = dep + hours * 3600000;
   const cross = Math.floor(t / 86400000) !== Math.floor(dep / 86400000);
@@ -79,13 +84,13 @@ function overview() {
       ${chart([
         { values: hist(x => x.upRate), color: '#35e0d0', fill: true },
         { values: hist(x => x.downRate), color: '#ffb454' }
-      ], { h: 130 })}
+      ], { h: 130, min: 30, max: 36 })}
       ${legend([{ label: T('上行 t/h','Up t/h'), color: '#35e0d0' }, { label: T('下行 t/h','Down t/h'), color: '#ffb454' }])}`, 't/h')}
     ${panel(T('功耗 · 近 60 分钟','Power · last 60 min'), `
       ${chart([
         { values: hist(x => x.axisPower), color: '#5aa9ff', fill: true },
         { values: hist(x => x.crownPower), color: '#35e0d0' }
-      ], { h: 130 })}
+      ], { h: 130, min: 400, max: 470 })}
       ${legend([{ label: T('世界之轴 MW','Axis MW'), color: '#5aa9ff' }, { label: T('树冠 MW','Crown MW'), color: '#35e0d0' }])}`, 'MW')}
   </div>
 
@@ -146,17 +151,17 @@ function axis() {
     ${panel(T('运力曲线','Throughput'), chart([
       { values: hist(x => x.upRate), color: '#35e0d0', fill: true },
       { values: hist(x => x.downRate), color: '#ffb454' }
-    ], { h: 140 }) + legend([{ label: T('上行','Up'), color: '#35e0d0' }, { label: T('下行','Down'), color: '#ffb454' }]), 't/h')}
+    ], { h: 140, min: 30, max: 36 }) + legend([{ label: T('上行','Up'), color: '#35e0d0' }, { label: T('下行','Down'), color: '#ffb454' }]), 't/h')}
     ${panel(T('索系张力','Tether tension'), chart([
       { values: hist(x => x.tension), color: '#5aa9ff', fill: true }
-    ], { h: 140 }), '%')}
+    ], { h: 140, min: 99.5, max: 100 }), '%')}
   </div>
 
   ${panel(T('索系温度 · 三测点','Tether temperature · 3 probes'), chart([
     { values: hist(x => x.tempGround), color: '#ffb454' },
     { values: hist(x => x.tempMid), color: '#35e0d0' },
     { values: hist(x => x.tempHigh), color: '#5aa9ff' }
-  ], { h: 150 }) + legend([
+  ], { h: 150, min: -70, max: 40 }) + legend([
     { label: T('地面端','Ground'), color: '#ffb454' },
     { label: T('中段','Mid'), color: '#35e0d0' },
     { label: T('高段','High'), color: '#5aa9ff' }
@@ -169,7 +174,7 @@ function axis() {
         <th>${T('在段舱','Pods')}</th><th>${T('可用率','Uptime')}</th></tr></thead><tbody>
       ${d.nodes.map((n, i) => `<tr>
         <td class="num">${n.id}</td><td class="num">${n.km.toLocaleString()}</td>
-        <td><span class="tag ${n.state === 'warn' ? 'warn' : 'ok'}" data-tag="nodes.${i}.state">${n.state === 'warn' ? T('注意','ADVISORY') : T('正常','NOMINAL')}</span></td>
+        <td><span class="tag ${n.state === 'warn' ? 'warn' : n.state === 'maint' ? 'cy' : 'ok'}" data-tag="nodes.${i}.state">${n.state === 'warn' ? T('注意','ADVISORY') : n.state === 'maint' ? T('维护','MAINT') : T('正常','NOMINAL')}</span></td>
         <td style="min-width:110px"><div class="bar-row"><div class="bar"><i data-w="nodes.${i}.load" data-max="100" style="width:${n.load.toFixed(1)}%"></i></div>
           <span class="v" data-k="nodes.${i}.load" data-f="1">${fmt(n.load, '1')}</span></div></td>
         <td class="num" data-k="nodes.${i}.lat" data-f="1">${fmt(n.lat, '1')}</td>
@@ -182,13 +187,14 @@ function axis() {
 
   <div style="margin-top:14px">
     ${panel(T('在途攀爬舱','Climbers in transit'), `
-      <table class="tbl"><thead><tr><th>ID</th><th>${T('方向','Dir')}</th><th>${T('位置 km','Km')}</th><th>${T('进度','Progress')}</th><th>${T('载员/载重','Load')}</th><th>${T('到达','ETA')}</th></tr></thead><tbody>
+      <table class="tbl"><thead><tr><th>ID</th><th>${T('方向','Dir')}</th><th>${T('位置 km','Km')}</th><th>${T('进度','Progress')}</th><th>${T('载员/载重','Load')}</th><th>${T('到达','ETA')}</th><th>${T('剩余','Remaining')}</th></tr></thead><tbody>
       ${d.transit.slice(0, 10).map(c => `<tr><td class="num">${c.id}</td>
         <td>${c.dir === 'up' ? T('上行','UP') : T('下行','DOWN')}</td>
-        <td class="num">${Math.round(c.km).toLocaleString()}</td>
+        <td class="num" data-car-km="${c.id}">${Math.round(c.km).toLocaleString()}</td>
         <td><div class="bar" style="min-width:70px"><i style="width:${(c.prog * 100).toFixed(1)}%"></i></div></td>
         <td class="num">${c.load} ${c.type === 'pax' ? T('人','pax') : 't'}</td>
-        <td class="num">${hhmm(c.arrive)}</td></tr>`).join('')}
+        <td class="num">${hhmm(c.arrive)}</td>
+        <td class="num" data-car-eta="${c.id}">${cd(c.arrive - APP.t)}</td></tr>`).join('')}
       </tbody></table>`, 'TRANSIT')}
   </div>`;
 }
@@ -267,7 +273,7 @@ function crown() {
   <div class="grid g2" style="margin-top:14px">
     ${panel(T('站体负载 · 近 60 分钟','Station load · last 60 min'), chart([
       { values: hist(x => x.crownPower), color: '#35e0d0', fill: true }
-    ], { h: 120 }), 'MW')}
+    ], { h: 120, min: 380, max: 480 }), 'MW')}
     ${panel(T('水储备 · 七日周期','Water reserve · 7-day cycle'), `
       <div class="stat-row"><span>${T('当前','Current')}</span><b class="cy">${K('water','int')} t</b></div>
       <div class="bar" style="margin:8px 0"><i style="width:${d.waterPct.toFixed(1)}%"></i></div>
@@ -324,14 +330,15 @@ function transport() {
   ${panel(T('在途明细','In-transit detail'), `
     <div class="tbl-wrap"><table class="tbl"><thead><tr>
       <th>ID</th><th>${T('类型','Type')}</th><th>${T('方向','Dir')}</th><th>${T('位置 km','Position km')}</th>
-      <th>${T('进度','Progress')}</th><th>${T('载员/载重','Load')}</th><th>${T('预计到达','ETA')}</th></tr></thead><tbody>
+      <th>${T('进度','Progress')}</th><th>${T('载员/载重','Load')}</th><th>${T('预计到达','ETA')}</th><th>${T('剩余','Remaining')}</th></tr></thead><tbody>
     ${d.transit.map(c => `<tr><td class="num">${c.id}</td>
       <td>${c.type === 'pax' ? T('客运','Pax') : T('货运','Freight')}</td>
       <td>${c.dir === 'up' ? T('上行','UP') : T('下行','DOWN')}</td>
-      <td class="num">${Math.round(c.km).toLocaleString()}</td>
+      <td class="num" data-car-km="${c.id}">${Math.round(c.km).toLocaleString()}</td>
       <td style="min-width:120px"><div class="bar"><i style="width:${(c.prog * 100).toFixed(1)}%"></i></div></td>
       <td class="num">${c.load} ${c.type === 'pax' ? T('人','pax') : 't'}</td>
-      <td class="num">${hhmm(c.arrive)}</td></tr>`).join('') || `<tr><td colspan="7" class="dim">${T('当前无在途舱','No pods in transit')}</td></tr>`}
+      <td class="num">${hhmm(c.arrive)}</td>
+      <td class="num" data-car-eta="${c.id}">${cd(c.arrive - APP.t)}</td></tr>`).join('') || `<tr><td colspan="8" class="dim">${T('当前无在途舱','No pods in transit')}</td></tr>`}
     </tbody></table></div>`, 'MANIFEST')}`;
 }
 
