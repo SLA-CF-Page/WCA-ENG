@@ -1,0 +1,11 @@
+{
+  "name": "wca-eng",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "世界儿童协会中央办公厅工程与运维局 · 冠轴运行中心（零构建静态站）",
+  "scripts": {
+    "dev": "node dev-server.mjs",
+    "start": "node dev-server.mjs"
+  }
+}
