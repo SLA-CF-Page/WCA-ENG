@@ -1,5 +1,6 @@
 /* main.js — 路由 / 多语言 / 实时刷新 */
-import { snapshot, telemetry, transit, fictionDelta, dateStr } from './sim.js';
+import { telemetry, transit, dateStr } from './sim.js';
+import { eraTime, snapshot as eraSnapshot, bannerHTML, modalHTML, ERA } from './era2047.js';
 import { render, fmt, cd } from './pages.js';
 
 const I18N = {
@@ -19,13 +20,13 @@ const I18N = {
 
 const state = {
   lang: localStorage.getItem('eng-lang') || 'zh',
-  t: Date.now() + fictionDelta(),
-  delta: fictionDelta(),
+  t: eraTime(),
+  delta: 0,
   data: null,
   path: '/',
   mapSpeed: 600,
   axisOrient: localStorage.getItem('eng-axis-orient') || 'v',
-  mapSim: Date.now() + fictionDelta(),
+  mapSim: eraTime(),
   mapReal: Date.now()
 };
 
@@ -78,10 +79,11 @@ function applyStaticI18n() {
 function updateClock() {
   const d = new Date(state.t);
   const pad = n => String(n).padStart(2, '0');
-  document.getElementById('clock').textContent =
-    `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
-  document.getElementById('clock-date').textContent =
-    `${dateStr(state.t)} UTC`;
+  const hms = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+  document.getElementById('clock').textContent = hms;
+  document.getElementById('clock-date').textContent = `${dateStr(state.t)} UTC · 2047`;
+  const ec = document.getElementById('era-clock');
+  if (ec) ec.textContent = `${dateStr(state.t)} ${hms} UTC`;
 }
 
 const get = (o, path) => path.split('.').reduce((x, k) => (x == null ? undefined : x[k]), o);
@@ -118,7 +120,7 @@ function paint() {
   const layer = document.getElementById('axis-cars');
   if (layer) {
     const mt = mapTime();
-    const cars = transit(mt);
+    const cars = ERA === '2047' ? d.transit : transit(mt);
     const horiz = state.axisOrient === 'h';
     layer.innerHTML = cars.map(c => {
       const p = Math.max(0, Math.min(100, c.km / 39986 * 100));
@@ -156,8 +158,8 @@ function renderRoute(keepScroll) {
   const y = keepScroll ? main.scrollTop : 0;
   const path = parsePath();
   state.path = path;
-  state.t = Date.now() + state.delta;
-  state.data = snapshot(state.t);
+  state.t = eraTime();
+  state.data = eraSnapshot(state.t);
 
   main.innerHTML = render(app, path);
   main.scrollTop = y;
@@ -178,20 +180,33 @@ function renderRoute(keepScroll) {
   };
   const pair = titles[path] || titles['/'];
   const title = app.L(pair[0], pair[1]);
-  document.title = `${title} · 冠轴运行中心`;
+  document.title = `${title} · 冠轴运行中心 · 2047 应急`;
 }
 
-/* ---------- 跨终端一致：服务端授时 ---------- */
-async function syncTime() {
-  try {
-    const res = await fetch('api/telemetry', { cache: 'no-store' });
-    if (!res.ok) return;
-    const j = await res.json();
-    if (j && typeof j.fictionNow === 'number' && typeof j.now === 'number') {
-      state.delta = j.fictionNow - j.now;
-      state.t = Date.now() + state.delta;
-    }
-  } catch { /* 离线：使用本地 2051 偏移 */ }
+/* ---------- 2047 应急界面 ---------- */
+function mountEraUI() {
+  document.body.classList.add('era-alert');
+  document.getElementById('era-banner')?.remove();
+  document.getElementById('era-modal')?.remove();
+  document.body.insertAdjacentHTML('afterbegin', bannerHTML(state.lang));
+  document.body.insertAdjacentHTML('beforeend', modalHTML(state.lang));
+
+  const modal = document.getElementById('era-modal');
+  if (modal && !sessionStorage.getItem('era-ack') && !location.search.includes('ack=1')) modal.hidden = false;
+  modal?.querySelector('[data-ack]')?.addEventListener('click', () => {
+    sessionStorage.setItem('era-ack', '1');
+    modal.hidden = true;
+  });
+  modal?.querySelector('[data-close]')?.addEventListener('click', () => { modal.hidden = true; });
+  document.querySelector('[data-order]')?.addEventListener('click', () => { modal.hidden = false; });
+
+  const eios = document.getElementById('top-eios');
+  const mode = document.getElementById('top-mode');
+  const link = document.getElementById('top-link');
+  if (link) link.textContent = 'DEGRADED';
+  if (eios) eios.textContent = 'OFFLINE';
+  if (mode) mode.textContent = 'ALERT';
+  document.querySelectorAll('.topstat .led').forEach(l => { l.className = 'led bad'; });
 }
 
 /* ---------- 启动 ---------- */
@@ -199,6 +214,8 @@ document.getElementById('lang-btn')?.addEventListener('click', () => {
   state.lang = state.lang === 'zh' ? 'en' : 'zh';
   localStorage.setItem('eng-lang', state.lang);
   renderRoute(true);
+  mountEraUI();
+  updateClock();
 });
 
 window.addEventListener('hashchange', () => renderRoute(false));
@@ -214,19 +231,18 @@ function boot() {
     state.mapReal = Date.now();
   }
   renderRoute(false);
+  mountEraUI();
   updateClock();
   setInterval(() => {
-    state.t = Date.now() + state.delta;
-    state.data = snapshot(state.t);
+    state.t = eraTime();
+    state.data = eraSnapshot(state.t);
     updateClock();
     paint();
   }, 1000);
   // 表格 / 图表每 15 秒重建一次
   setInterval(() => renderRoute(true), 15000);
-  syncTime();
-  setInterval(syncTime, 5 * 60 * 1000);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) { syncTime(); renderRoute(true); }
+    if (!document.hidden) renderRoute(true);
   });
 }
 

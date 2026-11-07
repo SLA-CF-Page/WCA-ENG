@@ -61,7 +61,7 @@ function overview() {
   <div class="grid g-2-1" style="margin-top:14px">
     ${panel(T('世界之轴 · 状态','World Axis · status'), `
       <div class="stat-list">
-        ${kv(T('运行模式','Mode'), tag('NORMAL', 'ok'))}
+        ${kv(T('运行模式','Mode'), tag('EMERGENCY', 'bad'))}
         ${kv(T('上行速率','Upbound rate'), K('upRate','1') + ' t/h')}
         ${kv(T('下行速率','Downbound rate'), K('downRate','1') + ' t/h')}
         ${kv(T('索系张力','Tether tension'), K('tension','2') + ' %')}
@@ -75,7 +75,7 @@ function overview() {
         ${kv(T('地面传导','Ground feed'), K('groundSupply','0') + ' MW')}
         ${kv(T('水储备','Water reserve'), K('water','int') + ' t')}
         ${kv(T('食品自给','Food self-sufficiency'), K('food','1') + ' %')}
-        ${kv(T('EIOS','EIOS'), tag('READY', 'ok'))}
+        ${kv(T('EIOS','EIOS'), tag('NOT INSTALLED', 'bad'))}
       </div>`, 'CR-01')}
   </div>
 
@@ -84,13 +84,13 @@ function overview() {
       ${chart([
         { values: hist(x => x.upRate), color: '#35e0d0', fill: true },
         { values: hist(x => x.downRate), color: '#ffb454' }
-      ], { h: 130, min: 30, max: 36 })}
+      ], { h: 130, min: 0, max: 36 })}
       ${legend([{ label: T('上行 t/h','Up t/h'), color: '#35e0d0' }, { label: T('下行 t/h','Down t/h'), color: '#ffb454' }])}`, 't/h')}
     ${panel(T('功耗 · 近 60 分钟','Power · last 60 min'), `
       ${chart([
         { values: hist(x => x.axisPower), color: '#5aa9ff', fill: true },
         { values: hist(x => x.crownPower), color: '#35e0d0' }
-      ], { h: 130, min: 400, max: 470 })}
+      ], { h: 130, min: 0, max: 500 })}
       ${legend([{ label: T('世界之轴 MW','Axis MW'), color: '#5aa9ff' }, { label: T('树冠 MW','Crown MW'), color: '#35e0d0' }])}`, 'MW')}
   </div>
 
@@ -102,7 +102,7 @@ function overview() {
         <td>${c.dir === 'up' ? T('上行','UP') : T('下行','DOWN')}</td>
         <td class="num">${hhmm(c.dep)}</td>
         <td class="num">${arr(c.dep, c.type === 'pax' ? 30 : 60)}</td>
-        <td>${c.type === 'pax' ? T('客运','Pax') : T('货运','Freight')} · ${c.pods} ${T('舱','pods')}</td></tr>`).join('')}
+        <td>${c.type === 'pax' ? T('客运','Pax') : T('货运','Freight')} · ${c.pods} ${T('舱','pods')}</td></tr>`).join('') || `<tr><td colspan="5" class="dim">${T('世界之轴停运，班次取消','Axis halted; departures cancelled')}</td></tr>`}
       </tbody></table>`, 'SCHED')}
     ${panel(T('实时事件','Live events'), `<div class="feed">
       ${d.events.slice(0, 7).map(e => `<div class="feed-item">
@@ -130,8 +130,8 @@ function axis() {
   const nStyle = (km) => horiz ? `left:${pos(km)}%` : `bottom:${pos(km)}%`;
   const nCls = (i) => horiz ? (i % 2 ? 'h-down' : 'h-up') : (i % 2 ? 'left' : '');
   return head('世界之轴', 'World Axis',
-    '轨道电梯全段运行监控：索系、节点、攀爬舱与能源链路。总长约 40,000 km。',
-    'Full-segment monitoring: tether, relay nodes, climbers and power chain. ~40,000 km overall.') + `
+    '世界之轴已停运：地震导致地面站受损、上行运力归零。全段监控仍在线，仅作抢修与状态判读。',
+    'Axis halted: the ground station is damaged and upbound capacity is zero. Monitoring remains online for repair and assessment.') + `
   <div class="grid ${horiz ? '' : 'g-2-1'}">
     ${panel(T('全段剖面','Segment profile'), `
       <div class="axis-map${horiz ? ' h' : ''}">
@@ -169,7 +169,7 @@ function axis() {
     ${panel(T('运力曲线','Throughput'), chart([
       { values: hist(x => x.upRate), color: '#35e0d0', fill: true },
       { values: hist(x => x.downRate), color: '#ffb454' }
-    ], { h: 140, min: 30, max: 36 }) + legend([{ label: T('上行','Up'), color: '#35e0d0' }, { label: T('下行','Down'), color: '#ffb454' }]), 't/h')}
+    ], { h: 140, min: 0, max: 36 }) + legend([{ label: T('上行','Up'), color: '#35e0d0' }, { label: T('下行','Down'), color: '#ffb454' }]), 't/h')}
     ${panel(T('索系张力','Tether tension'), chart([
       { values: hist(x => x.tension), color: '#5aa9ff', fill: true }
     ], { h: 140, min: 99.5, max: 100 }), '%')}
@@ -228,8 +228,8 @@ function crown() {
     [T('其他','Other'), 1000, '#6f8795']
   ];
   return head('世界树之冠', 'World Tree Crown',
-    '总部空间站：五环舱段、能源、生保与应急独立运行系统（EIOS）。',
-    'Headquarters station: five rings, power, life support and EIOS.') + `
+    '总部空间站：五环舱段、能源与生保。EIOS 尚未部署，当前仅能维持约 32% 负载。',
+    'Headquarters station: five rings, power and life support. EIOS is not deployed; the station is running at ~32% load.') + `
   <div class="grid g-2-1">
     ${panel(T('环段剖视','Ring section'), `<div class="ring-wrap">
       <div>${ringMap(rings)}</div>
@@ -250,13 +250,13 @@ function crown() {
         ${kv(T('站体总负载','Station load'), K('crownPower','0') + ' MW')}
         ${kv(T('自载堆输出','Reactors'), K('reactorMW','0') + ' MW')}
         ${kv(T('地面补充','Ground supply'), K('groundSupply','0') + ' MW')}
-        ${kv(T('堆组','Reactor set'), '5 × 120 MW · 4+1')}
+        ${kv(T('堆组','Reactor set'), '3 × 80 MW · 2+1')}
         ${kv(T('应急电池','Battery'), '120 MWh · 72h')}
       </div>
       <div style="margin-top:12px">
-        ${[1, 2, 3, 4, 5].map(i => `<div class="bar-row"><span>R${i}</span>
-          <div class="bar ${i === 5 ? 'am' : ''}"><i style="width:${i === 5 ? 0 : (92 + (i * 3) % 7)}%"></i></div>
-          <span class="v">${i === 5 ? T('备用','STBY') : (110 + i) + ' MW'}</span></div>`).join('')}
+        ${[1, 2, 3].map(i => `<div class="bar-row"><span>R${i}</span>
+          <div class="bar ${i === 3 ? 'am' : ''}"><i style="width:${i === 3 ? 0 : (88 + i * 3)}%"></i></div>
+          <span class="v">${i === 3 ? T('备用','STBY') : (76 + i) + ' MW'}</span></div>`).join('')}
       </div>`, 'GRID')}
   </div>
 
@@ -279,33 +279,33 @@ function crown() {
       <div class="stat-row"><span>${T('在站率','Occupancy')}</span><b class="cy">${(d.pop / 60000 * 100).toFixed(1)}%</b></div>`, 'POP')}
     ${panel(T('应急独立运行','EIOS'), `
       <div class="stat-list">
-        ${kv(T('状态','Status'), tag('READY', 'ok'))}
-        ${kv(T('独立运行基线','Endurance'), '18 ' + T('个月','months'))}
-        ${kv(T('上次演练','Last drill'), '2051-09-14')}
-        ${kv(T('下次演练','Next drill'), '2051-12-14')}
-        ${kv(T('切换时间','Switch time'), '< 90 s')}
-        ${kv(T('覆盖负载','Coverage'), '85%')}
+        ${kv(T('状态','Status'), tag(T('未部署','NOT DEPLOYED'), 'bad'))}
+        ${kv(T('部署计划','Plan'), T('2048 年大修','2048 overhaul'))}
+        ${kv(T('当前自持','Endurance'), T('约 72 小时','~72 h'))}
+        ${kv(T('可维持负载','Load'), '32%')}
+        ${kv(T('自载堆','Reactors'), '3 × 80 MW · 2+1')}
+        ${kv(T('地面补给','Ground feed'), T('中断','LOST'))}
       </div>`, 'EIOS')}
   </div>
 
   <div class="grid g2" style="margin-top:14px">
     ${panel(T('站体负载 · 近 60 分钟','Station load · last 60 min'), chart([
       { values: hist(x => x.crownPower), color: '#35e0d0', fill: true }
-    ], { h: 120, min: 380, max: 480 }), 'MW')}
+    ], { h: 120, min: 0, max: 500 }), 'MW')}
     ${panel(T('水储备 · 七日周期','Water reserve · 7-day cycle'), `
       <div class="stat-row"><span>${T('当前','Current')}</span><b class="cy">${K('water','int')} t</b></div>
       <div class="bar" style="margin:8px 0"><i style="width:${d.waterPct.toFixed(1)}%"></i></div>
       <div class="stat-row"><span>${T('储备上限','Capacity')}</span><b>20,000 t</b></div>
       <div class="stat-row"><span>${T('日均损耗','Daily loss')}</span><b>~37 t</b></div>
-      <div class="stat-row"><span>${T('可支撑','Endurance')}</span><b>~18 ${T('个月','months')}</b></div>`, 'H₂O')}
+      <div class="stat-row"><span>${T('应急基线','Baseline')}</span><b class="am">${T('约 72 小时','~72 h')}</b></div>`, 'H₂O')}
   </div>`;
 }
 
 /* ================= 运输计划 ================= */
 function transport() {
   const d = APP.data;
-  const paxLeft = Math.max(0, CANON.capPax - d.paxToday);
-  const frLeft = Math.max(0, CANON.capUp - d.upToday);
+  const paxLeft = 0;
+  const frLeft = 0;
   const fixed = [
     ['06:00', 'pax', 'up'], ['18:00', 'pax', 'down'],
     ['00:00', 'fr', 'up'], ['06:00', 'fr', 'up'], ['12:00', 'fr', 'up'], ['18:00', 'fr', 'up'],
@@ -318,7 +318,7 @@ function transport() {
     ${panel(T('客运余量','Pax remaining'), `<div class="kpi cy"><div class="k-label"><span>PAX · TODAY</span><span>cap ${CANON.capPax}</span></div><div class="k-val">${Math.round(paxLeft)}<small>${T('人','pax')}</small></div><div class="bar"><i style="width:${pct(d.paxToday, CANON.capPax)}%"></i></div></div>`, 'PAX')}
     ${panel(T('货运余量','Freight remaining'), `<div class="kpi am"><div class="k-label"><span>UP · TONNES</span><span>cap ${CANON.capUp}</span></div><div class="k-val">${Math.round(frLeft)}<small>t</small></div><div class="bar am"><i style="width:${pct(d.upToday, CANON.capUp)}%"></i></div></div>`, 'FRT')}
     ${panel(T('今日在途','In transit'), `<div class="kpi"><div class="k-label"><span>PODS</span><span>${T('双向','both')}</span></div><div class="k-val">${K('transit.length','int')}<small>${T('舱','pods')}</small></div><div class="k-foot"><span>${T('平均延误','avg delay')}</span><span>${K('delay','1')} min</span></div></div>`, 'TRK')}
-    ${panel(T('今日班次','Departures today'), `<div class="kpi bl"><div class="k-label"><span>SLOTS</span><span>10</span></div><div class="k-val">10<small>${T('班','sched')}</small></div><div class="k-foot"><span>${T('客运','pax')} 2</span><span>${T('货运','frt')} 8</span></div></div>`, 'SCHED')}
+    ${panel(T('今日班次','Departures today'), `<div class="kpi bl"><div class="k-label"><span>SLOTS</span><span>0</span></div><div class="k-val">0<small>${T('班','sched')}</small></div><div class="k-foot"><span>${T('全部取消','all cancelled')}</span><span>—</span></div></div>`, 'SCHED')}
   </div>
 
   <div class="grid g2" style="margin-top:14px">
@@ -329,7 +329,7 @@ function transport() {
         <td>${c.dir === 'up' ? T('上行','UP') : T('下行','DOWN')}</td>
         <td class="num">${hhmm(c.dep)}</td>
         <td class="num">${arr(c.dep, c.type === 'pax' ? 30 : 60)}</td>
-        <td class="num">${c.pods} × ${c.cap} ${c.type === 'pax' ? T('人','pax') : 't'}</td></tr>`).join('')}
+        <td class="num">${c.pods} × ${c.cap} ${c.type === 'pax' ? T('人','pax') : 't'}</td></tr>`).join('') || `<tr><td colspan="6" class="dim">${T('世界之轴停运，班次取消','Axis halted; departures cancelled')}</td></tr>`}
       </tbody></table>`, 'NEXT')}
     ${panel(T('固定时刻表','Fixed timetable'), `
       <table class="tbl"><thead><tr><th>UTC</th><th>${T('类型','Type')}</th><th>${T('方向','Dir')}</th><th>${T('状态','State')}</th></tr></thead><tbody>
@@ -337,10 +337,10 @@ function transport() {
         const [h, m] = t.split(':').map(Number);
         const d0 = Math.floor(APP.t / 86400000) * 86400000;
         const dep = d0 + h * 3600000 + m * 60000;
-        const st = dep < APP.t ? T('已发','DEPARTED') : T('待发','SCHEDULED');
+        const st = T('取消','CANCELLED');
         return `<tr><td class="num">${t}</td><td>${type === 'pax' ? T('客运','Pax') : T('货运','Freight')}</td>
           <td>${dir === 'up' ? T('上行','UP') : T('下行','DOWN')}</td>
-          <td>${tag(st, dep < APP.t ? '' : 'cy')}</td></tr>`;
+          <td>${tag(st, 'bad')}</td></tr>`;
       }).join('')}
       </tbody></table>`, 'DAILY')}
   </div>
@@ -365,13 +365,13 @@ function maintenance() {
   const d = APP.data, m = d.maint;
   const stateTag = s => s === 'active' ? tag(T('执行中','ACTIVE'), 'cy') : s === 'queued' ? tag(T('待执行','QUEUED'), 'warn') : tag(T('已完成','DONE'), 'ok');
   return head('维护计划', 'Maintenance Plan',
-    '世界之轴与世界树之冠的 A–F 六级维护、工单与五年大修（F 级）倒计时。',
-    'Tier A–F maintenance, work orders and the five-year deep overhaul countdown.') + `
+    '维护计划已暂停，全部力量转入应急抢修。以下为原定 A–F 计划与 2048 年大修倒计时。',
+    'Maintenance is suspended; all resources are on emergency repair. Original A–F plan and the 2048 overhaul countdown below.') + `
   <div class="grid g4">
-    ${panel(T('F 级大修倒计时','Next F overhaul'), `<div class="kpi am"><div class="k-label"><span>DEEP OVERHAUL</span><span>${m.nextF}</span></div><div class="k-val">${m.daysToF}<small>${T('天','days')}</small></div><div class="k-foot"><span>${T('上次','last')}</span><span>2048</span></div></div>`, 'F-CLASS')}
+    ${panel(T('F 级大修倒计时','Next F overhaul'), `<div class="kpi am"><div class="k-label"><span>DEEP OVERHAUL</span><span>${m.nextF}</span></div><div class="k-val">${m.daysToF}<small>${T('天','days')}</small></div><div class="k-foot"><span>${T('上次','last')}</span><span>2043</span></div></div>`, 'F-CLASS')}
     ${panel(T('维护机器人','Maintenance robots'), `<div class="kpi cy"><div class="k-label"><span>ROBOTS</span><span>200</span></div><div class="k-val">${m.robots.active}<small>${T('在役','active')}</small></div><div class="bar"><i style="width:${m.robots.active / 2}%"></i></div></div>`, 'AUTO')}
     ${panel(T('开放工单','Open work orders'), `<div class="kpi"><div class="k-label"><span>WORK ORDERS</span><span>24H</span></div><div class="k-val">${m.orders.filter(o => o.state !== 'done').length}<small>${T('单','WO')}</small></div><div class="k-foot"><span>${T('今日完成','done today')}</span><span>${m.orders.filter(o => o.state === 'done').length}</span></div></div>`, 'WO')}
-    ${panel(T('下次 A 级巡检','Next A inspection'), `<div class="kpi bl"><div class="k-label"><span>TIER A</span><span>24H</span></div><div class="k-val">06:00<small>UTC</small></div><div class="k-foot"><span>${T('自动','auto')}</span><span>RDY</span></div></div>`, 'TIER-A')}
+    ${panel(T('下次 A 级巡检','Next A inspection'), `<div class="kpi bl"><div class="k-label"><span>EMERGENCY</span><span>24H</span></div><div class="k-val">${T('抢修','REPAIR')}<small>${T('中','ACTIVE')}</small></div><div class="k-foot"><span>${T('暂停','suspended')}</span><span>ALERT</span></div></div>`, 'TIER-A')}
   </div>
 
   <div class="grid g-2-1" style="margin-top:14px">
@@ -394,7 +394,7 @@ function maintenance() {
           <span>${y}</span><b class="${next ? 'am' : done ? 'cy' : ''}">${done ? T('已完成','DONE') : next ? T('计划中','NEXT') : T('计划','PLAN')}</b></div>`;
       }).join('')}
     </div>
-    <div class="stat-row" style="margin-top:12px"><span>${T('2048 年大修新增','Added in 2048')}</span><b class="cy">EIOS · 5×120MW · 20,000t H₂O</b></div>`, 'CYCLE')}`;
+    <div class="stat-row" style="margin-top:12px"><span>${T('计划中','Planned')}</span><b class="am">2048 ${T('年大修','overhaul')} · EIOS · 5×120MW</b></div>`, 'CYCLE')}`;
 }
 
 /* ================= 事件 ================= */
@@ -445,7 +445,7 @@ function about() {
         ${kv(T('输电/通信','Power / link'), '500 MW / 40 Tbps')}
         ${kv(T('树冠常驻','Crown residents'), '52,000')}
         ${kv(T('树冠自载堆','Reactors'), '5 × 120 MW (4+1)')}
-        ${kv(T('EIOS 基线','EIOS endurance'), L('18 个月','18 months'))}
+        ${kv(T('EIOS','EIOS'), T('未部署（2048 计划）','Not deployed (2048 plan)'))}
       </div>`, 'CANON')}
   </div>
 
