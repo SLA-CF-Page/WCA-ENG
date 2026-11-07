@@ -1,6 +1,6 @@
 /* main.js — 路由 / 多语言 / 实时刷新 */
 import { telemetry, transit, dateStr } from './sim.js';
-import { eraTime, snapshot as eraSnapshot, bannerHTML, modalHTML, ERA } from './era2047.js';
+import { eraTime, snapshot as eraSnapshot, bannerHTML, modalHTML, ERA, RANGE_START, RANGE_END } from './era2047.js';
 import { render, fmt, cd } from './pages.js';
 
 const I18N = {
@@ -24,12 +24,14 @@ const state = {
   delta: 0,
   data: null,
   path: '/',
+  manualT: null,
   mapSpeed: 600,
   axisOrient: localStorage.getItem('eng-axis-orient') || 'v',
   mapSim: eraTime(),
   mapReal: Date.now()
 };
 
+const currentEraTime = () => (state.manualT != null ? state.manualT : eraTime());
 const mapTime = () => state.mapSim + (Date.now() - state.mapReal) * state.mapSpeed;
 function setSpeed(v) {
   if (v === state.mapSpeed) return;
@@ -84,6 +86,12 @@ function updateClock() {
   document.getElementById('clock-date').textContent = `${dateStr(state.t)} UTC · 2047`;
   const ec = document.getElementById('era-clock');
   if (ec) ec.textContent = `${dateStr(state.t)} ${hms} UTC`;
+  const slider = document.getElementById('era-slider');
+  if (slider) {
+    slider.value = Math.max(0, Math.min(Number(slider.max), state.t - RANGE_START));
+    const tl = document.getElementById('era-slider-time');
+    if (tl) tl.textContent = hms.slice(0, 5);
+  }
 }
 
 const get = (o, path) => path.split('.').reduce((x, k) => (x == null ? undefined : x[k]), o);
@@ -158,7 +166,7 @@ function renderRoute(keepScroll) {
   const y = keepScroll ? main.scrollTop : 0;
   const path = parsePath();
   state.path = path;
-  state.t = eraTime();
+  state.t = currentEraTime();
   state.data = eraSnapshot(state.t);
 
   main.innerHTML = render(app, path);
@@ -200,6 +208,22 @@ function mountEraUI() {
   modal?.querySelector('[data-close]')?.addEventListener('click', () => { modal.hidden = true; });
   document.querySelector('[data-order]')?.addEventListener('click', () => { modal.hidden = false; });
 
+  const slider = document.getElementById('era-slider');
+  const applyManual = () => {
+    state.manualT = RANGE_START + Number(slider.value);
+    state.t = state.manualT;
+    state.data = eraSnapshot(state.t);
+    updateClock();
+    paint();
+  };
+  slider?.addEventListener('input', applyManual);
+  slider?.addEventListener('change', () => { renderRoute(true); updateClock(); });
+  document.querySelector('[data-live]')?.addEventListener('click', () => {
+    state.manualT = null;
+    renderRoute(true);
+    updateClock();
+  });
+
   const endur = document.getElementById('top-endurance');
   const mode = document.getElementById('top-mode');
   const link = document.getElementById('top-link');
@@ -224,6 +248,12 @@ function boot() {
   const qs = new URLSearchParams(location.search);
   const o = qs.get('axis');
   if (o === 'h' || o === 'v') state.axisOrient = o;
+  const tp = qs.get('t');
+  if (tp && /^\d{1,2}:\d{2}$/.test(tp)) {
+    const [hh, mm] = tp.split(':').map(Number);
+    const target = RANGE_START + ((hh * 60 + mm) - (2 * 60 + 47)) * 60000;
+    state.manualT = Math.max(RANGE_START, Math.min(RANGE_END, target));
+  }
   const q = Number(qs.get('spd'));
   if ([1, 60, 600, 3600].includes(q)) {
     state.mapSpeed = q;
@@ -234,7 +264,7 @@ function boot() {
   mountEraUI();
   updateClock();
   setInterval(() => {
-    state.t = eraTime();
+    state.t = currentEraTime();
     state.data = eraSnapshot(state.t);
     updateClock();
     paint();

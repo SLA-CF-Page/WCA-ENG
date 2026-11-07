@@ -7,6 +7,8 @@ export const ERA = '2047';
 const QUAKE = Date.UTC(2047, 8, 12, 2, 47, 0);   // 地震时刻
 const START = Date.UTC(2047, 8, 12, 10, 30, 0); // 视图锚点：停运确认后
 const WINDOW = 30 * 60000;                      // 10:30–11:00 震后窗口
+export const RANGE_START = QUAKE;               // 时间轴 02:47
+export const RANGE_END = QUAKE + 8 * 3600000;   // 时间轴 10:47
 
 export function eraTime(now = Date.now()) { return START + (now % WINDOW); }
 
@@ -72,6 +74,12 @@ export function bannerHTML(lang = 'zh') {
       <b>${zh ? '世界之轴地面站地震 · 世界之轴停运 · 自持仅 72 小时' : 'Andes earthquake · Axis halted · 72 h endurance only'}</b>
       <span class="era-clock" id="era-clock">2047-09-12 02:47 UTC</span>
       <button class="era-btn" data-order>${zh ? '查看命令' : 'View order'}</button>
+    </div>
+    <div class="era-timeline">
+      <span class="tl-label">${zh ? '时间轴' : 'TIMELINE'}</span>
+      <input id="era-slider" type="range" min="0" max="${RANGE_END - RANGE_START}" step="60000" value="0" aria-label="timeline" />
+      <span class="tl-time" id="era-slider-time">--:--</span>
+      <button class="era-btn" data-live>${zh ? '跟随' : 'LIVE'}</button>
     </div>
     <div class="era-ticker"><span>${tick}</span></div>
   </div>`;
