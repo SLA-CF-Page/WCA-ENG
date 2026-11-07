@@ -19,7 +19,7 @@ const EVENTS = [
   [313 * 60000, '地面站应急修复专项启动', 'Ground station emergency repair task force launched', 'ok'],
   [373 * 60000, '中央医疗总部医疗队登舱', 'Central Medical HQ team boards', 'ok'],
   [420 * 60000, '中继塔 3–7 层结构评估：严重受损', 'Relay tower floors 3–7: severe damage', 'warn'],
-  [493 * 60000, '世界之轴确认停运，上行运力归零', 'World Axis confirmed halted; upbound capacity zero', 'crit']
+  [463 * 60000, '世界之轴确认停运，上行运力归零', 'World Axis confirmed halted; upbound capacity zero', 'crit']
 ];
 
 const ORDER_ZH = {
